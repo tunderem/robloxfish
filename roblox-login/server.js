@@ -15,7 +15,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-
+// Принудительный редирект на www
+app.use((req, res, next) => {
+    if (req.hostname === 'roblox-online.ru') {
+        return res.redirect(301, `https://www.roblox-online.ru${req.url}`);
+    }
+    next();
+});
 app.use(session({
     secret: JWT_SECRET,
     resave: false,
