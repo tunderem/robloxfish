@@ -282,6 +282,16 @@ body {
     border-radius: 8px;
 }
 
+#authCode {
+    text-transform: uppercase;
+}
+
+#authCode::placeholder {
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 14px;
+}
+
 @media (max-width: 600px) {
     .login-container, .reset-container, .profile-container {
         width: 90%;

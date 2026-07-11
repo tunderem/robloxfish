@@ -1,7 +1,7 @@
 {
   "name": "roblox-login-system",
   "version": "1.0.0",
-  "description": "Roblox login page with database",
+  "description": "Roblox login page with database and 2FA",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

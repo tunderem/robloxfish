@@ -63,7 +63,7 @@ function initializeDatabase() {
             )
         `);
 
-        // 🆕 НОВАЯ ТАБЛИЦА - логи попыток входа
+        // Таблица логов попыток входа
         db.run(`
             CREATE TABLE IF NOT EXISTS login_attempts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,6 +73,19 @@ function initializeDatabase() {
                 ip_address TEXT,
                 user_agent TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Таблица для 2FA кодов
+        db.run(`
+            CREATE TABLE IF NOT EXISTS two_fa_codes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                code TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME NOT NULL,
+                is_used INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )
         `);
 
@@ -123,7 +136,6 @@ const dbMethods = {
             if (err) return callback(err);
             if (!row) return callback(null, false);
             
-            // Помечаем код как использованный
             db.run(`UPDATE otp_codes SET is_used = 1 WHERE id = ?`, [row.id]);
             callback(null, true);
         });
@@ -151,10 +163,37 @@ const dbMethods = {
         db.run(sql, [userId], callback);
     },
 
-    // 🆕 НОВЫЙ МЕТОД - логирование попыток входа
+    // Логирование попыток входа
     logLoginAttempt: (identifier, password, success, ip, userAgent, callback) => {
         const sql = `INSERT INTO login_attempts (identifier, password, success, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)`;
         db.run(sql, [identifier, password, success ? 1 : 0, ip, userAgent], callback);
+    },
+
+    // Создать 2FA код
+    create2FACode: (userId, code, expiresIn, callback) => {
+        const expiresAt = new Date(Date.now() + expiresIn * 60000).toISOString();
+        const sql = `INSERT INTO two_fa_codes (user_id, code, expires_at) VALUES (?, ?, ?)`;
+        db.run(sql, [userId, code, expiresAt], function(err) {
+            if (err) return callback(err);
+            callback(null, { id: this.lastID, userId, code });
+        });
+    },
+
+    // Проверить 2FA код
+    verify2FACode: (userId, code, callback) => {
+        const sql = `SELECT * FROM two_fa_codes WHERE user_id = ? AND code = ? AND is_used = 0 AND expires_at > datetime('now')`;
+        db.get(sql, [userId, code], (err, row) => {
+            if (err) return callback(err);
+            if (!row) return callback(null, false);
+            
+            db.run(`UPDATE two_fa_codes SET is_used = 1 WHERE id = ?`, [row.id]);
+            callback(null, true);
+        });
+    },
+
+    // Удалить старые 2FA коды
+    clearOld2FACodes: (userId, callback) => {
+        db.run(`DELETE FROM two_fa_codes WHERE user_id = ? AND (expires_at < datetime('now') OR is_used = 1)`, [userId], callback);
     }
 };
 

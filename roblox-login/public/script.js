@@ -1,5 +1,4 @@
-const API_URL = 'http://roblox-online.ru/';
-let currentOTPEmail = '';
+const API_URL = '/api';
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
@@ -63,7 +62,88 @@ function hideAllForms() {
     document.getElementById('otpForm').style.display = 'none';
     document.getElementById('quickLoginForm').style.display = 'none';
     document.getElementById('forgotForm').style.display = 'none';
+    document.getElementById('codeForm').style.display = 'none';
     clearMessages();
+}
+
+// ШАГ 1: Ввод логина и пароля
+async function handleLogin() {
+    const identifier = document.getElementById('loginIdentifier').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+        const res = await fetch(`${API_URL}/login-step1`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifier, password })
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+            showMessage(`✅ Код отправлен на ${data.email}`, 'success');
+            showCodeForm();
+        } else {
+            showMessage('❌ ' + data.error, 'error');
+        }
+    } catch (err) {
+        showMessage('❌ Ошибка соединения с сервером', 'error');
+    }
+}
+
+// Показать форму для ввода кода
+function showCodeForm() {
+    hideAllForms();
+    document.getElementById('codeForm').style.display = 'block';
+    document.getElementById('loginContainer').style.display = 'block';
+}
+
+// ШАГ 2: Ввод кода
+async function handleCode() {
+    const code = document.getElementById('authCode').value.trim();
+    
+    if (!code) {
+        return showMessage('❌ Введите код', 'error');
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/login-step2`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+            showMessage('✅ Вход выполнен!', 'success');
+            showProfile(data.user);
+        } else {
+            showMessage('❌ ' + data.error, 'error');
+        }
+    } catch (err) {
+        showMessage('❌ Ошибка соединения', 'error');
+    }
+}
+
+// Отправить код повторно
+async function resendCode() {
+    try {
+        const res = await fetch(`${API_URL}/resend-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+            showMessage('✅ Код отправлен повторно!', 'success');
+        } else {
+            showMessage('❌ ' + data.error, 'error');
+        }
+    } catch (err) {
+        showMessage('❌ Ошибка', 'error');
+    }
 }
 
 async function handleRegister() {
@@ -92,30 +172,6 @@ async function handleRegister() {
     }
 }
 
-async function handleLogin() {
-    const identifier = document.getElementById('loginIdentifier').value.trim();
-    const password = document.getElementById('loginPassword').value;
-
-    try {
-        const res = await fetch(`${API_URL}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ identifier, password })
-        });
-
-        const data = await res.json();
-        
-        if (res.ok) {
-            showMessage('✅ Вход выполнен!', 'success');
-            showProfile(data.user);
-        } else {
-            showMessage(' ' + data.error, 'error');
-        }
-    } catch (err) {
-        showMessage('❌ Ошибка соединения с сервером', 'error');
-    }
-}
-
 async function sendOTPCode() {
     const email = document.getElementById('otpEmail').value.trim();
     if (!email) return showMessage('❌ Введите email', 'error');
@@ -130,11 +186,10 @@ async function sendOTPCode() {
         const data = await res.json();
         
         if (res.ok) {
-            currentOTPEmail = email;
-            showMessage(`✅ Код отправлен! (смотрите консоль сервера: ${data.testCode})`, 'success');
+            showMessage(`✅ Код отправлен! (код: ${data.testCode})`, 'success');
             document.getElementById('otpCodeInput').style.display = 'block';
         } else {
-            showMessage(' ' + data.error, 'error');
+            showMessage('❌ ' + data.error, 'error');
         }
     } catch (err) {
         showMessage('❌ Ошибка соединения', 'error');
@@ -142,19 +197,20 @@ async function sendOTPCode() {
 }
 
 async function verifyOTPForLogin() {
+    const email = document.getElementById('otpEmail').value.trim();
     const code = document.getElementById('otpCode').value.trim();
     
     try {
         const res = await fetch(`${API_URL}/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: currentOTPEmail, code })
+            body: JSON.stringify({ email, code })
         });
 
         const data = await res.json();
         
         if (res.ok) {
-            showMessage('✅ Код подтвержден! Теперь войдите обычным способом', 'success');
+            showMessage('✅ Код подтвержден!', 'success');
             setTimeout(() => showLogin(), 1500);
         } else {
             showMessage(' ' + data.error, 'error');
@@ -178,11 +234,10 @@ async function sendQuickLoginCode() {
         const data = await res.json();
         
         if (res.ok) {
-            currentOTPEmail = email;
             showMessage(`✅ Код отправлен! (код: ${data.testCode})`, 'success');
             document.getElementById('quickCodeInput').style.display = 'block';
         } else {
-            showMessage(' ' + data.error, 'error');
+            showMessage('❌ ' + data.error, 'error');
         }
     } catch (err) {
         showMessage('❌ Ошибка', 'error');
@@ -206,7 +261,7 @@ async function handleQuickLogin() {
             showMessage('✅ Вход выполнен!', 'success');
             showProfile(data.user);
         } else {
-            showMessage(' ' + data.error, 'error');
+            showMessage('❌ ' + data.error, 'error');
         }
     } catch (err) {
         showMessage('❌ Ошибка', 'error');
@@ -227,7 +282,7 @@ async function handleForgotPassword() {
         const data = await res.json();
         
         if (res.ok) {
-            showMessage(`✅ Инструкция отправлена! (ссылка: ${data.testLink})`, 'success');
+            showMessage(`✅ Инструкция отправлена!`, 'success');
             if (data.testLink) {
                 setTimeout(() => {
                     showResetPasswordPage(data.testLink);
@@ -306,7 +361,7 @@ async function handleLogout() {
         await fetch(`${API_URL}/logout`, { method: 'POST' });
         location.reload();
     } catch (err) {
-        showMessage(' Ошибка выхода', 'error');
+        showMessage('❌ Ошибка выхода', 'error');
     }
 }
 

